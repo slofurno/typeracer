@@ -13,30 +13,81 @@ function text (state = "", action) {
 function typed (state = [], action) {
   switch (action.type) {
     case "ADD_CHAR":
-      return [...state, action.char]
+      return [...state, action.c]
     default:
       return state
   }
 }
 
-function addChar (x) {
+function addChar (c) {
   return {
     type: "ADD_CHAR",
-    char: x
+    c
   }
 }
 
+const charmap = {
+  186: [";",":"],
+  222: ["'","\""],
+  188: [",","<"],
+  190: [".",">"],
+  191: ["/","?"],
+  189: ["-","_"],
+  187: ["=","+"],
+  48: ["0", ")"],
+
+  49: ["1", "!"],
+  50: ["2", "@"],
+  51: ["3", "#"],
+  52: ["4", "$"],
+  53: ["5", "%"],
+  54: ["6", "^"],
+  55: ["7", "&"],
+  56: ["8", "*"],
+  57: ["9", "("],
+
+  32: [" ", " "]
+}
+
+function zip (xs, ys) {
+  var r = [];
+  var c = Math.min(xs.length, ys.length);
+  for (var i = 0; i < c; i++) {
+    r.push([xs[i], ys[i]]);
+  }
+  return r;
+}
+
+let tevs = []
+
 function maybeAddChar (e) {
+  let keycode = e.keyCode
+  let isShifted = e.shiftKey
+  let c = ""
+  console.log(keycode)
+  tevs.push(e.keyCode)
   return dispatch => {
     let keycode = e.keyCode
-    if (keycode < 32 || keycode > 122) {
+    if (keycode >= 65 && keycode <= 90) {
+      if (!isShifted) { keycode += 32 }
+      c = String.fromCharCode(keycode)
+    } else if (charmap[keycode]) {
+      let idx = 0
+      if (isShifted) {idx = 1}
+      c = charmap[keycode][idx]
+    } else {
       return
     }
 
-    if (!e.shiftKey) {
-      keycode += 32
-    }
-    dispatch(addChar(String.fromCharCode(keycode)))
+    console.log(c)
+    dispatch(addChar(c))
+  }
+}
+
+function setInput (input) {
+  return {
+    type: "SET_INPUT",
+    input
   }
 }
 
@@ -45,13 +96,28 @@ const rootReducer = combineReducers({
   text
 })
 
+
 class _app extends Component {
   render () {
 
-    const { visibleText, maybeAddChar } = this.props
+    const { prevText, nextText, lastInput, currentChar, maybeAddChar } = this.props
+
+    let tevs = zip(lastInput, prevText).map(([a,b]) => {
+      if (a === b) {
+        return (<div className="flex char correct">{b}</div>)
+      } else {
+        return (<div className="flex char incorrect">{a}</div>)
+      }
+    })
+
     return (
       <div>
-        <h2>{visibleText.join("")}</h2>
+        <div className = "flex container justify-center">
+          {tevs}
+          <div className="flex char highlight">{currentChar}</div>
+          {nextText.map(x => <div className="flex char">{x}</div>)}
+        </div>
+
         <input type="text" onKeyDown={maybeAddChar}/>
       </div>
     )
@@ -60,13 +126,22 @@ class _app extends Component {
 
 const mapDispatchToProps = dispatch => {
   return {
-    maybeAddChar: e => dispatch(maybeAddChar(e))
+    maybeAddChar: e => dispatch(maybeAddChar(e)),
+    setInput: input => dispatch(setInput(input))
   }
 }
 
 const rawTyped = state => state.typed
 const rawText = state => state.text
-const ten = ["","","","","","","","","",""]
+const pad = ["","","","","","","","","","","","","","","","","","","",""]
+
+const lastInput = createSelector(
+  rawTyped,
+  (typed) => {
+    let xs = typed.slice(-20)
+    return [...pad, ...xs].slice(-20)
+  }
+)
 
 const prevText = createSelector(
   rawTyped,
@@ -74,8 +149,8 @@ const prevText = createSelector(
   (typed, text) => {
     console.log(typed, text)
     let p = typed.length
-    let min = Math.max(p - 10, 0)
-    return [...ten, ...text.slice(min, p)].slice(-10)
+    let min = Math.max(p - 20, 0)
+    return [...pad, ...text.slice(min, p)].slice(-20)
   }
 )
 
@@ -83,7 +158,8 @@ const nextText = createSelector(
   rawTyped,
   rawText,
   (typed, text) => {
-
+    let p = typed.length
+    return [...text.slice(p + 1, p + 21), ...pad].slice(0, 20)
   }
 )
 
@@ -107,9 +183,12 @@ let unsubscribe = store.subscribe(() =>
 )
 
 const selector = createSelector(
-  visibleText,
-  (visibleText) => {
-    return {visibleText}
+  currentChar,
+  prevText,
+  nextText,
+  lastInput,
+  (currentChar, prevText, nextText, lastInput) => {
+    return {currentChar, prevText, nextText, lastInput}
   }
 )
 
