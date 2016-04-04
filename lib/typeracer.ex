@@ -108,6 +108,13 @@ defmodule Typeracer.Pubsub do
 end
 
 defmodule Typeracer.Router do
+  use Plug.Builder
+
+  plug Plug.Static,
+  at: "/", from: :typeracer
+end
+
+defmodule Typeracer.Nt do
   import Plug.Conn
 
   @index """
@@ -120,6 +127,7 @@ defmodule Typeracer.Router do
   ws.onmessage = x => console.log(x.data)
   </script>
   """
+
   def init(opts) do
     opts
   end
