@@ -38,17 +38,19 @@ defmodule Typeracer.SockerHandler do
   end
 
   def websocket_init(_type, req, _opts) do
-    IO.inspect("init")
-    #send self(), {:message, "generated message"}
-    #Typeracer.Pubsub.subscribe(self())
-    {:ok, req, %{}, 60000}
+    {:ok, req, %{uid: Typeracer.Utils.random_hex}, 120000}
   end
 
-  def websocket_handle({:text, message}, req, state) do
+  def websocket_handle({:text, message}, req, %{uid: uid} = state) do
     msg = Poison.decode!(message, as: %{})
     case msg do
-      %{"type" => "subscribe", "topic" => topic} -> Pubsub.subscribe(self, topic)
-      %{"type" => "message", "topic" => topic, "text" => text} -> Pubsub.message(topic, text)
+      %{"type" => "subscribe", "topic" => topic}
+        -> Pubsub.subscribe(self, topic)
+      %{"type" => "message", "topic" => topic, "text" => text}
+        -> Pubsub.message(topic, text)
+      %{"type" => "cast", "topic" => topic, "text" => text}
+        -> Pubsub.broadcast_others(topic, uid <> "|" <> text, self)
+
       _ -> IO.inspect(msg)
     end
 
@@ -71,10 +73,10 @@ defmodule Typeracer.SockerHandler do
 end
 
 defmodule Typeracer.Pubsub do
-  use GenServer 
+  use GenServer
 
   def start_link do
-    GenServer.start(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
   def subscribe(pid, topic) do
@@ -85,7 +87,17 @@ defmodule Typeracer.Pubsub do
     GenServer.cast(__MODULE__, {:msg, topic, message})
   end
 
+  def broadcast_others(topic, message, sender) do
+    GenServer.cast(__MODULE__, {:broadcast, topic, message, sender})
+  end
+
   def init(_), do: {:ok, %{}}
+
+  def handle_cast({:broadcast, topic, message, sender}, subs) do
+    (for sub <- (subs[topic] || []), sub != sender, do: sub)
+    |> Enum.map(fn sub -> send sub, message end)
+    {:noreply, subs}
+  end
 
   def handle_cast({:msg, topic, message}, subs) do
     (subs[topic] || [])
@@ -129,5 +141,22 @@ defmodule Typeracer.Nt do
 
   def call(conn, opts) do
     send_resp(conn, 200, @index)
+  end
+end
+
+defmodule Typeracer.Utils do
+  @hex "0123456789abcedf"
+
+  def epoch_time do
+    :os.system_time(:milli_seconds)
+  end
+
+  def random_hex do
+    tevs = for <<a::size(4), b::size(4) <- :crypto.strong_rand_bytes(12)>>,
+        n <- [a, b],
+        do: String.at(@hex, n)
+
+    tevs
+    |> to_string
   end
 end

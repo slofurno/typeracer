@@ -5,6 +5,11 @@ import { Provider, connect } from 'react-redux'
 import thunk from 'redux-thunk'
 import { render } from 'react-dom'
 
+//let ws = new WebSocket("ws://" + location.host + "/ws")
+//ws.onmessage = e => console.log(e.data)
+
+//const cast = x => ws.send(JSON.stringify({type:"cast",topic:"steve",text:"HEY"}))
+//const subr = x => ws.send(JSON.stringify({type:"subscribe",topic:"steve"}))
 
 function text (state = "", action) {
   return [].slice.call("let's type some text and do something with it cause fuck you")
