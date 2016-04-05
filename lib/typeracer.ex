@@ -71,39 +71,34 @@ defmodule Typeracer.SockerHandler do
 end
 
 defmodule Typeracer.Pubsub do
-  use GenEvent
+  use GenServer 
 
   def start_link do
-    ret = GenEvent.start(name: __MODULE__)
-    GenEvent.add_handler(__MODULE__, Typeracer.Pubsub, [])
-    ret
+    GenServer.start(__MODULE__, [], name: __MODULE__)
   end
 
   def subscribe(pid, topic) do
-    GenEvent.notify(__MODULE__, {:sub, pid, topic})
+    GenServer.cast(__MODULE__, {:sub, pid, topic})
   end
 
   def message(topic, message) do
-    GenEvent.notify(__MODULE__, {:msg, topic, message})
+    GenServer.cast(__MODULE__, {:msg, topic, message})
   end
 
   def init(_), do: {:ok, %{}}
 
-  def handle_event({:msg, topic, message}, subs) do
+  def handle_cast({:msg, topic, message}, subs) do
     (subs[topic] || [])
     |> Enum.map(fn sub -> send sub, {:message, message} end)
-
-    {:ok, subs}
+    {:noreply, subs}
   end
 
-  def handle_event({:sub, pid, topic}, subs) do
-    #IO.inspect(pid)
-    #Enum.map(subs, fn x -> send x, {:message, "someone connected"} end)
+  def handle_cast({:sub, pid, topic}, subs) do
     {_, subs} = Map.get_and_update(subs, topic, fn
       nil -> {nil, [pid]}
       x -> {x, [pid|x]}
     end)
-    {:ok, subs}
+    {:noreply, subs}
   end
 end
 
