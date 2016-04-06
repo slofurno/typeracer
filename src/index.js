@@ -4,6 +4,7 @@ import {createSelector} from 'reselect'
 import { Provider, connect } from 'react-redux'
 import thunk from 'redux-thunk'
 import { render } from 'react-dom'
+import request from './request'
 
 //let ws = new WebSocket("ws://" + location.host + "/ws")
 //ws.onmessage = e => console.log(e.data)
@@ -86,6 +87,30 @@ function maybeAddChar (e) {
 
     console.log(c)
     dispatch(addChar(c))
+  }
+}
+
+function parse({data}) {
+  return JSON.parse(data);
+}
+
+function getTextSuccess(text) {
+  return {
+    type: "GET_TEXT_SUCCESS",
+    text
+  }
+}
+
+function getText(id) {
+  return (dispatch) => {
+    return request({
+      method: "GET",
+      url: `/api/text/${id}`
+    })
+    .then(x => x.data)
+    .then(x => dispatch(getTextSuccess(x)))
+    .catch(console.error)
+
   }
 }
 

@@ -22,3 +22,5 @@ priv/static/bundle.js
 /deps
 erl_crash.dump
 *.ez
+republic.txt
+src/parse.json
