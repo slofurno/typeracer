@@ -1,4 +1,3 @@
-
 defmodule Typeracer.SockerHandler do
   alias Typeracer.Pubsub
 
@@ -12,7 +11,6 @@ defmodule Typeracer.SockerHandler do
 
   #TODO: heartbeat instead of longer timeout
   def websocket_init(_type, req, _opts) do
-    IO.inspect req
     {_,_,_,_,_,_,_,_,_,_,_,_,_,qs,_,_,_,_,_,_,_,_,_,_,_,_,_,_} = req
     IO.inspect qs
     {:ok, req, %{uid: Typeracer.Utils.random_hex}, 480000}

@@ -8,4 +8,11 @@ defmodule Typeracer.Text do
     Agent.get(__MODULE__, &Enum.at(&1, i))
   end
 
+  def get_random do
+    Agent.get(__MODULE__, fn x ->
+      i = Enum.count(x) |> :random.uniform
+      Enum.at(x, i - 1)
+    end)
+  end
+
 end

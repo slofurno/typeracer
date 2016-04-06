@@ -6,14 +6,32 @@ import thunk from 'redux-thunk'
 import { render } from 'react-dom'
 import request from './request'
 
-//let ws = new WebSocket("ws://" + location.host + "/ws")
-//ws.onmessage = e => console.log(e.data)
 
-//const cast = x => ws.send(JSON.stringify({type:"cast",topic:"steve",text:"HEY"}))
-//const subr = x => ws.send(JSON.stringify({type:"subscribe",topic:"steve"}))
+function startTime (state = 1, action) {
+  switch (action.type) {
+    case "START_RACE_SUCCESS":
+      return action.race.time
+    default:
+      return state
+  }
+}
 
-function text (state = "", action) {
-  return [].slice.call("let's type some text and do something with it cause fuck you")
+function gameid (state = "", action) {
+  switch (action.type) {
+    case "CREATE_RACE_SUCCESS":
+      return action.id
+    default:
+      return state
+  }
+}
+
+function text (state = "asds adasd asdsakj sdfkjsdfkl sdfjsdkjf sdfsd", action) {
+  switch (action.type) {
+    case "START_RACE_SUCCESS":
+      return action.race.text
+    default:
+      return state
+  }
 }
 
 function typed (state = [], action) {
@@ -66,13 +84,24 @@ function zip (xs, ys) {
 
 let tevs = []
 
+function mapQueryString(s){
+      return s.split('&')
+  .map(function(kvp){
+        return kvp.split('=');
+  }).reduce(function(sum,current){
+        var key = current[0];
+        var value = current[1];
+        sum[key] = value;
+        return sum;
+  },{});
+}
+
 function maybeAddChar (e) {
   let keycode = e.keyCode
   let isShifted = e.shiftKey
   let c = ""
-  console.log(keycode)
   tevs.push(e.keyCode)
-  return dispatch => {
+  return (dispatch) => {
     let keycode = e.keyCode
     if (keycode >= 65 && keycode <= 90) {
       if (!isShifted) { keycode += 32 }
@@ -85,7 +114,6 @@ function maybeAddChar (e) {
       return
     }
 
-    console.log(c)
     dispatch(addChar(c))
   }
 }
@@ -114,6 +142,41 @@ function getText(id) {
   }
 }
 
+function setRace(id) {
+  return {
+    type: "CREATE_RACE_SUCCESS",
+    id
+  }
+}
+
+function createRaceSuccess(id) {
+  return (dispatch) => {
+    dispatch(setRace(id))
+    dispatch(joinRace(id))
+  }
+}
+
+function createRace() {
+	return (dispatch) => {
+    return request({
+      method: 'POST',
+      url: '/api/race'
+    })
+    .then(x => dispatch(createRaceSuccess(x)))
+    .catch(console.error)
+  }
+}
+
+function startRace() {
+  return (dispatch, getState) => {
+    const {gameid} = getState()
+    return request({
+      method: 'POST',
+      url: `/api/race/${gameid}`
+    })
+  }
+}
+
 function setInput (input) {
   return {
     type: "SET_INPUT",
@@ -123,14 +186,29 @@ function setInput (input) {
 
 const rootReducer = combineReducers({
   typed,
-  text
+  text,
+  gameid,
+  startTime
 })
 
 
 class _app extends Component {
   render () {
 
-    const { prevText, nextText, lastInput, currentChar, maybeAddChar } = this.props
+    const {
+      stats,
+      prevText,
+      nextText,
+      gameid,
+      startTime,
+      lastInput,
+      currentChar,
+      maybeAddChar,
+      createRace,
+      startRace,
+    } = this.props
+
+    console.log(stats)
 
     let tevs = zip(lastInput, prevText).map(([a,b]) => {
       if (a === b) {
@@ -149,6 +227,17 @@ class _app extends Component {
         </div>
 
         <input type="text" onKeyDown={maybeAddChar}/>
+        <input type="button" onClick={createRace} value="create a typerace"/>
+        <input type="button" onClick={startRace} value="start typerace"/>
+        <div>{`${location.origin}/?game=${gameid}`} </div>
+        <div style = {{
+          backgroundColor: "whitesmoke",
+          padding: "20px",
+          fontSize: "2em"
+        }}>
+          <div>{`${stats.apm} apm`}</div>
+          <div>{`${100 * stats.accuracy}% correct`}</div>
+        </div>
       </div>
     )
   }
@@ -157,12 +246,17 @@ class _app extends Component {
 const mapDispatchToProps = dispatch => {
   return {
     maybeAddChar: e => dispatch(maybeAddChar(e)),
-    setInput: input => dispatch(setInput(input))
+    setInput: input => dispatch(setInput(input)),
+    createRace: e => dispatch(createRace()),
+    startRace: () => dispatch(startRace()),
   }
 }
 
 const rawTyped = state => state.typed
-const rawText = state => state.text
+const rawGameid = state => state.gameid
+const rawText = state => [].slice.call(state.text)
+const rawStartTime = state => state.startTime
+
 const pad = ["","","","","","","","","","","","","","","","","","","",""]
 
 const lastInput = createSelector(
@@ -177,7 +271,6 @@ const prevText = createSelector(
   rawTyped,
   rawText,
   (typed, text) => {
-    console.log(typed, text)
     let p = typed.length
     let min = Math.max(p - 20, 0)
     return [...pad, ...text.slice(min, p)].slice(-20)
@@ -202,6 +295,26 @@ const currentChar = createSelector(
   }
 )
 
+const stats = createSelector(
+  rawTyped,
+  rawStartTime,
+  rawText,
+  (typed, start, text) => {
+    let dt = (Date.now() - start)/60000
+    let apm = typed.length/dt
+    let max = Math.min(typed.length, text.length)
+    let ok = 0
+    for (var i = 0; i < max; i++) {
+      if (text[i] === typed[i]) ok++
+    }
+    let accuracy = ok/max
+
+    return {
+      apm,
+      accuracy
+    }
+  }
+)
 
 let store = createStore(
   rootReducer,
@@ -212,13 +325,62 @@ let unsubscribe = store.subscribe(() =>
   console.log(store.getState())
 )
 
+let qs = mapQueryString(location.search.slice(1))
+let ws = new WebSocket("ws://" + location.host + "/ws")
+
+ws.onmessage = websocket
+ws.onopen = () => {
+  store.dispatch(createRaceSuccess(qs["game"] || ""))
+}
+
+function joinRace() {
+  return (dispatch, getState) => {
+    const {gameid} = getState()
+    if (gameid) subr(gameid)
+  }
+}
+
+function cast(topic, text) {
+  ws.send(JSON.stringify({type:"cast",topic,text}))
+}
+
+function subr(topic) {
+  console.log("sub", topic);
+  ws.send(JSON.stringify({type:"subscribe",topic}))
+}
+
+function startRaceSuccess (race) {
+  return {
+    type: "START_RACE_SUCCESS",
+    race
+  }
+}
+
+function websocket ({data}) {
+  let c = data.split("|")
+  switch (c[0]) {
+  case "start":
+    store.dispatch(startRaceSuccess({
+      time: Date.now(),
+      text: c[1],
+    }))
+  break
+  default:
+    console.log(c[0])
+
+  }
+}
+
 const selector = createSelector(
   currentChar,
   prevText,
   nextText,
   lastInput,
-  (currentChar, prevText, nextText, lastInput) => {
-    return {currentChar, prevText, nextText, lastInput}
+  rawGameid,
+  rawStartTime,
+  stats,
+  (currentChar, prevText, nextText, lastInput, gameid, startTime, stats) => {
+    return {currentChar, prevText, nextText, lastInput, gameid, startTime, stats}
   }
 )
 

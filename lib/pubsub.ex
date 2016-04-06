@@ -29,7 +29,7 @@ defmodule Typeracer.Pubsub do
 
   def handle_cast({:broadcast, topic, message, sender}, subs) do
     for sub <- (subs[topic] || []), sub != sender do
-      send sub, message
+      send sub, {:message, message}
     end
 
     {:noreply, subs}
