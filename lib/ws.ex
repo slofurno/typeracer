@@ -26,7 +26,7 @@ defmodule Typeracer.SockerHandler do
         Pubsub.message(topic, text)
 
       %{"type" => "cast", "topic" => topic, "text" => text} ->
-        Pubsub.broadcast_others(topic, uid <> "|" <> text, self)
+        Pubsub.broadcast_others(topic, "keypress|#{uid}|" <> text, self)
 
       _ -> IO.inspect(msg)
     end

@@ -6,22 +6,42 @@ import thunk from 'redux-thunk'
 import { render } from 'react-dom'
 import request from './request'
 
+function players (state = {}, action) {
+  switch (action.type) {
+  case "ADD_KEYPRESS":
+    let xs = state[action.n.pid] ? state[action.n.pid].concat([action.n]) : [action.n]
+    let ok = {}
+    ok[action.n.pid] = xs
+    return Object.assign({}, state, ok)
+  default:
+    return state
+  }
+}
+
+function isConnected (state = false, action) {
+  switch (action.type) {
+  case "SUCCESSFUL_CONNECT":
+    return true
+  default:
+    return state
+  }
+}
 
 function startTime (state = 1, action) {
   switch (action.type) {
-    case "START_RACE_SUCCESS":
-      return action.race.time
-    default:
-      return state
+  case "START_RACE_SUCCESS":
+    return action.race.time
+  default:
+    return state
   }
 }
 
 function gameid (state = "", action) {
   switch (action.type) {
-    case "CREATE_RACE_SUCCESS":
-      return action.id
-    default:
-      return state
+  case "CREATE_RACE_SUCCESS":
+    return action.id
+  default:
+    return state
   }
 }
 
@@ -114,6 +134,7 @@ function maybeAddChar (e) {
       return
     }
 
+    dispatch(broadcastKeypress(c))
     dispatch(addChar(c))
   }
 }
@@ -156,6 +177,17 @@ function createRaceSuccess(id) {
   }
 }
 
+function broadcastKeypress(c) {
+  return (dispatch, getState) => {
+    const {isConnected, startTime, typed, gameid} = getState()
+    if (!isConnected) return
+
+    let i = typed.length
+    let t = Date.now() - startTime
+    cast(gameid, `${i}|${t}|${c}`)
+  }
+}
+
 function createRace() {
 	return (dispatch) => {
     return request({
@@ -188,7 +220,9 @@ const rootReducer = combineReducers({
   typed,
   text,
   gameid,
-  startTime
+  startTime,
+  isConnected,
+  players
 })
 
 
@@ -200,6 +234,7 @@ class _app extends Component {
       prevText,
       nextText,
       gameid,
+      racers,
       startTime,
       lastInput,
       currentChar,
@@ -238,6 +273,14 @@ class _app extends Component {
           <div>{`${stats.apm} apm`}</div>
           <div>{`${100 * stats.accuracy}% correct`}</div>
         </div>
+
+        <div style = {{
+          backgroundColor: "lightskyblue",
+          padding: "20px",
+          fontSize: "2em"
+        }}>
+        {racers.map(({pid, apm, accuracy}) => <div key={pid}>{`${pid} ${60000*apm}apm ${100*accuracy}%`}</div>)}
+        </div>
       </div>
     )
   }
@@ -256,6 +299,8 @@ const rawTyped = state => state.typed
 const rawGameid = state => state.gameid
 const rawText = state => [].slice.call(state.text)
 const rawStartTime = state => state.startTime
+const rawConnected = state => state.isConnected
+const rawPlayers = state => state.players
 
 const pad = ["","","","","","","","","","","","","","","","","","","",""]
 
@@ -295,24 +340,48 @@ const currentChar = createSelector(
   }
 )
 
+function makeStats (typed, dt, text) {
+  let apm = typed.length/dt
+  let max = Math.min(typed.length, text.length)
+  let ok = 0
+  for (var i = 0; i < max; i++) {
+    if (text[i] === typed[i]) ok++
+  }
+  let accuracy = ok/max
+
+  return {
+    apm,
+    accuracy
+  }
+}
+
 const stats = createSelector(
   rawTyped,
   rawStartTime,
   rawText,
   (typed, start, text) => {
     let dt = (Date.now() - start)/60000
-    let apm = typed.length/dt
-    let max = Math.min(typed.length, text.length)
-    let ok = 0
-    for (var i = 0; i < max; i++) {
-      if (text[i] === typed[i]) ok++
-    }
-    let accuracy = ok/max
+    return makeStats(typed, dt, text)
+  }
+)
 
-    return {
-      apm,
-      accuracy
-    }
+function aggregateStats(player) {
+  let typed = player.map(({ch}) => ch)
+  let last = player.slice(-1)[0]
+  let dt = last ? last.t : 1
+  let pid = last.pid
+  return {typed, dt, pid}
+}
+
+const racers = createSelector(
+  rawPlayers,
+  rawStartTime,
+  rawText,
+  (players, start, text) => {
+    let ps = Object.keys(players).map(x => players[x]).map(aggregateStats)
+    return ps.map(({dt, typed, pid}) => {
+      return Object.assign({}, makeStats(typed, dt, text), {pid})
+    })
   }
 )
 
@@ -330,6 +399,9 @@ let ws = new WebSocket("ws://" + location.host + "/ws")
 
 ws.onmessage = websocket
 ws.onopen = () => {
+  store.dispatch({
+    type: "SUCCESSFUL_CONNECT"
+  })
   store.dispatch(createRaceSuccess(qs["game"] || ""))
 }
 
@@ -356,6 +428,13 @@ function startRaceSuccess (race) {
   }
 }
 
+function addKeypress (n) {
+  return {
+    type: "ADD_KEYPRESS",
+    n
+  }
+}
+
 function websocket ({data}) {
   let c = data.split("|")
   switch (c[0]) {
@@ -365,8 +444,15 @@ function websocket ({data}) {
       text: c[1],
     }))
   break
+  case "keypress":
+    let [e, pid, i, t, ch] = c
+    store.dispatch(addKeypress({
+      pid, i, t, ch
+    }))
+
+  break
   default:
-    console.log(c[0])
+    console.log(c)
 
   }
 }
@@ -379,8 +465,20 @@ const selector = createSelector(
   rawGameid,
   rawStartTime,
   stats,
-  (currentChar, prevText, nextText, lastInput, gameid, startTime, stats) => {
-    return {currentChar, prevText, nextText, lastInput, gameid, startTime, stats}
+  rawConnected,
+  racers,
+  (currentChar, prevText, nextText, lastInput, gameid, startTime, stats, isConnected, racers) => {
+    return {
+      currentChar,
+      prevText,
+      nextText,
+      lastInput,
+      gameid,
+      startTime,
+      stats,
+      isConnected,
+      racers
+    }
   }
 )
 
