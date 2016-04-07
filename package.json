@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha --opts mocha.opts",
+    "test:watch": "npm test -- --watch --reporter min",
     "webpack": "node_modules/.bin/webpack",
-    "start" : "npm run webpack && iex -S mix"
+    "start": "npm run webpack && iex -S mix"
   },
   "author": "",
   "license": "ISC",
@@ -15,6 +16,8 @@
     "babel-loader": "^6.2.1",
     "babel-preset-es2015": "^6.3.13",
     "babel-preset-react": "^6.3.13",
+    "babel-register": "^6.7.2",
+    "mocha": "^2.4.5",
     "react": "^0.14.6",
     "react-dom": "^0.14.6",
     "react-redux": "^4.0.6",
@@ -23,6 +26,7 @@
     "webpack": "^1.12.12"
   },
   "dependencies": {
+    "expect": "^1.16.0",
     "react-dnd": "^2.1.3",
     "react-dnd-html5-backend": "^2.1.2",
     "reselect": "^2.0.3"
