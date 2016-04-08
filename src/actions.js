@@ -13,6 +13,7 @@ export function setupWebsocket (socket) {
     socket.onopen = () => {
       dispatch(setSocket(socket))
       const { gameid } = getState()
+      //TODO: doesn't really matter, but this means we reset gameid
       if (gameid) dispatch(joinRace(gameid))
     }
   }

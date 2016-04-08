@@ -10,11 +10,16 @@ function mockWebsocket () {
   let self = {
     onmessage: x => x,
     onopen: x => x,
-    send
+    send,
+    receive
   }
 
   function send(msg) {
     console.log(msg)
+  }
+
+  function receive(msg) {
+    self.onmessage({data: msg})
   }
 
   setTimeout(() => {
@@ -40,21 +45,52 @@ describe('join game', () => {
     )
 
     let unsubscribe = store.subscribe(() =>
-      //console.log(store.getState())
+        true
     )
 
     store.dispatch(setupWebsocket(socket))
     store.dispatch(joinRace("55"))
 
+    //TODO: how to wait for dispatch w/o using mock store?
     waitFor(15)
-    .then(() => {
-      const { socket, gameid } = store.getState()
-      expect(socket).toEqual(socket)
-      expect(gameid).toEqual("55")
-    })
-    .then(done)
-    .catch(done)
+      .then(() => {
+        const { socket, gameid } = store.getState()
+        expect(socket).toEqual(socket)
+        expect(gameid).toEqual("55")
+      })
+      .then(done)
+      .catch(done)
 
+  })
+})
+
+describe('start game', () => {
+  it('should set the game text to what the socket receives', (done) => {
+    let socket = mockWebsocket()
+
+    let store = createStore(
+      rootReducer,
+      applyMiddleware(thunk)
+    )
+
+    let unsubscribe = store.subscribe(() =>
+        true
+    )
+
+    store.dispatch(joinRace("55"))
+    store.dispatch(setupWebsocket(socket))
+
+    waitFor(15)
+      .then(() => {
+        socket.receive("start|ASDFASDF")
+        return waitFor(10)
+      })
+      .then(() => {
+        let { text } = store.getState()
+        expect(text).toEqual("ASDFASDF")
+      })
+      .then(done)
+      .catch(done)
   })
 })
 
