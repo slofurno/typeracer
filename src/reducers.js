@@ -41,7 +41,7 @@ function players (state = {}, action) {
 
 function isConnected (state = false, action) {
   switch (action.type) {
-  case "SUCCESSFUL_CONNECT":
+  case "SET_SOCKET":
     return true
   default:
     return state

@@ -1,15 +1,23 @@
 import request from './request'
+import { charmap } from './charmap'
 
-function setSocket (socket) {
+function unsetSocket() {
+  return {
+    type: "UNSET_SOCKET"
+  }
+}
+
+function setSocket(socket) {
   return {
     type: "SET_SOCKET",
     socket
   }
 }
 
-export function setupWebsocket (socket) {
+export function setupWebsocket(socket) {
   return function(dispatch, getState) {
     socket.onmessage = ({data}) => dispatch(handleWebsocket(data))
+    socket.onclose = () => dispatch(unsetSocket())
     socket.onopen = () => {
       dispatch(setSocket(socket))
       const { gameid } = getState()
@@ -67,29 +75,6 @@ function handleWebsocket (data) {
   }
 }
 
-const charmap = {
-  186: [";",":"],
-  222: ["'","\""],
-  188: [",","<"],
-  190: [".",">"],
-  191: ["/","?"],
-  189: ["-","_"],
-  187: ["=","+"],
-  48: ["0", ")"],
-
-  49: ["1", "!"],
-  50: ["2", "@"],
-  51: ["3", "#"],
-  52: ["4", "$"],
-  53: ["5", "%"],
-  54: ["6", "^"],
-  55: ["7", "&"],
-  56: ["8", "*"],
-  57: ["9", "("],
-
-  32: [" ", " "]
-}
-
 function addChar (c) {
   return {
     type: "ADD_CHAR",
@@ -97,12 +82,10 @@ function addChar (c) {
   }
 }
 
-
 export function maybeAddChar (e) {
   let keycode = e.keyCode
   let isShifted = e.shiftKey
   let c = ""
-  tevs.push(e.keyCode)
   return (dispatch) => {
     let keycode = e.keyCode
     if (keycode >= 65 && keycode <= 90) {
@@ -120,7 +103,6 @@ export function maybeAddChar (e) {
     dispatch(addChar(c))
   }
 }
-
 
 function parse({data}) {
   return JSON.parse(data);
@@ -160,7 +142,13 @@ function broadcastKeypress(c) {
 
     let i = typed.length
     let t = Date.now() - startTime
-    cast(gameid, `${i}|${t}|${c}`)
+
+    const { socket } = getState()
+    socket.send(JSON.stringify({
+      type: 'cast',
+      topic: gameid,
+      text: `${i}|${t}|${c}`
+    }))
   }
 }
 
@@ -191,4 +179,3 @@ export function setInput (input) {
     input
   }
 }
-

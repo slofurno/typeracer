@@ -8,6 +8,8 @@ import request from './request'
 import { setupWebsocket, joinRace } from './actions'
 import rootReducer from './reducers'
 
+import App from './components/app'
+
 let store = createStore(
   rootReducer,
   applyMiddleware(thunk)
