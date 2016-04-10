@@ -5,9 +5,9 @@ import thunk from 'redux-thunk'
 import { render } from 'react-dom'
 import request from './request'
 
+import { mapQueryString } from './utils'
 import { setupWebsocket, joinRace } from './actions'
 import rootReducer from './reducers'
-
 import App from './components/app'
 
 let store = createStore(
@@ -15,23 +15,7 @@ let store = createStore(
   applyMiddleware(thunk)
 )
 
-let unsubscribe = store.subscribe(() =>
-  console.log(store.getState())
-)
-
-let tevs = []
-
-function mapQueryString(s){
-      return s.split('&')
-  .map(function(kvp){
-        return kvp.split('=');
-  }).reduce(function(sum,current){
-        var key = current[0];
-        var value = current[1];
-        sum[key] = value;
-        return sum;
-  },{});
-}
+let unsubscribe = store.subscribe(() => console.log(store.getState()))
 
 let qs = mapQueryString(location.search.slice(1))
 let ws = new WebSocket("ws://" + location.host + "/ws")

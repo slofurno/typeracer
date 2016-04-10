@@ -10,4 +10,4 @@ COPY . /usr/src/app
 RUN npm install
 RUN mix deps.get
 
-CMD iex -S mix
+CMD mix run --no-halt

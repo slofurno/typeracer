@@ -8,13 +8,16 @@ const rawConnected = state => state.isConnected
 const rawPlayers = state => state.players
 const rawSocket = state => state.socket
 
-const pad = ["","","","","","","","","","","","","","","","","","","",""]
+const pad = [].slice.call(".................................................................").map(x => "")
+console.log("pad:", pad.length)
+//const pad = ["","","","","","","","","","","","","","","","","","","",""]
+const NCHARS = 20
 
 const lastInput = createSelector(
   rawTyped,
   (typed) => {
-    let xs = typed.slice(-20)
-    return [...pad, ...xs].slice(-20)
+    let xs = typed.slice(-NCHARS)
+    return [...pad, ...xs].slice(-NCHARS)
   }
 )
 
@@ -23,8 +26,8 @@ const prevText = createSelector(
   rawText,
   (typed, text) => {
     let p = typed.length
-    let min = Math.max(p - 20, 0)
-    return [...pad, ...text.slice(min, p)].slice(-20)
+    let min = Math.max(p - NCHARS, 0)
+    return [...pad, ...text.slice(min, p)].slice(-NCHARS)
   }
 )
 
@@ -32,8 +35,8 @@ const nextText = createSelector(
   rawTyped,
   rawText,
   (typed, text) => {
-    let p = typed.length
-    return [...text.slice(p + 1, p + 21), ...pad].slice(0, 20)
+    let p = typed.length + 1
+    return [...text.slice(p, p + NCHARS), ...pad].slice(0, NCHARS)
   }
 )
 
@@ -86,7 +89,7 @@ const racers = createSelector(
   (players, start, text) => {
     let ps = Object.keys(players).map(x => players[x]).map(aggregateStats)
     return ps.map(({dt, typed, pid}) => {
-      return Object.assign({}, makeStats(typed, dt, text), {pid})
+      return Object.assign({}, makeStats(typed, dt, text), {pid, percent: typed.length/text.length})
     })
   }
 )
@@ -94,8 +97,9 @@ const racers = createSelector(
 const selector = createSelector(
   currentChar, prevText, nextText, lastInput, rawGameid,
   rawStartTime, stats, rawConnected, racers, rawSocket,
+  rawText, rawTyped,
   (currentChar, prevText, nextText, lastInput, gameid,
-   startTime, stats, isConnected, racers, socket) => {
+   startTime, stats, isConnected, racers, socket, text, typed) => {
     return {
       currentChar,
       prevText,
@@ -105,7 +109,9 @@ const selector = createSelector(
       startTime,
       stats,
       isConnected,
-      racers
+      racers,
+      text,
+      typed
     }
   }
 )

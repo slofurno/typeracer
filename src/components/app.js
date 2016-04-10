@@ -1,22 +1,13 @@
 import React, { Component, PropTypes } from 'react'
 import { connect } from 'react-redux'
 import selector from '../selectors'
+import { zip } from '../utils'
 import {
   maybeAddChar,
   setInput,
   createRace,
   requestStartRace
 } from '../actions'
-
-function zip (xs, ys) {
-  var r = [];
-  var c = Math.min(xs.length, ys.length);
-  for (var i = 0; i < c; i++) {
-    r.push([xs[i], ys[i]]);
-  }
-  return r;
-}
-
 
 const mapDispatchToProps = dispatch => {
   return {
@@ -42,9 +33,9 @@ class app extends Component {
       maybeAddChar,
       createRace,
       startRace,
+      text,
+      typed
     } = this.props
-
-    console.log(stats)
 
     let tevs = zip(lastInput, prevText).map(([a,b]) => {
       if (a === b) {
@@ -53,6 +44,18 @@ class app extends Component {
         return (<div className="flex char incorrect">{a}</div>)
       }
     })
+  /*
+    let tevs = dzip(typed, text).map(([a,b], i) => {
+      if (i === j) {
+        return <div className="flex char highlight">{b}</div>
+      } else if (a === b) {
+        return (<div className="flex char correct">{b}</div>)
+      } else {
+        return (<div className="flex char incorrect">{a}</div>)
+      }
+    })
+    */
+
 
     return (
       <div>
@@ -65,7 +68,11 @@ class app extends Component {
         <input type="text" onKeyDown={maybeAddChar}/>
         <input type="button" onClick={createRace} value="create a typerace"/>
         <input type="button" onClick={startRace} value="start typerace"/>
-        <div>{`${location.origin}/?game=${gameid}`} </div>
+        <div style = {{
+          backgroundColor: "lightskyblue",
+          padding: "10px",
+          fontSize: "1.4em" 
+        }}>{`${location.origin}/?game=${gameid}`} </div>
         <div style = {{
           backgroundColor: "whitesmoke",
           padding: "20px",
@@ -80,7 +87,12 @@ class app extends Component {
           padding: "20px",
           fontSize: "2em"
         }}>
-        {racers.map(({pid, apm, accuracy}) => <div key={pid}>{`${pid} ${60000*apm}apm ${100*accuracy}%`}</div>)}
+        { racers.map(({pid, apm, accuracy, percent}) =>
+            <div key={pid}>
+              <div>{`${60000*apm|0} apm    ${(100*accuracy)|0}% accuracy`}</div>
+              <div style = {{ width: `${(100*percent)|0}%`, backgroundColor: "red", height: "10px"}}></div>
+            </div>
+            )}
         </div>
       </div>
     )
