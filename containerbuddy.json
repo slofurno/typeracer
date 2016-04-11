@@ -1,5 +1,5 @@
 {
-  "consul": "localhost:8500",
+  "consul": "172.17.0.1:8500",
   "services": [
     {
       "name": "typeracer",
