@@ -7,6 +7,11 @@ dependencies:
     - npm install
     - docker build -t slofurno/typeracer .
 
+test:
+  override:
+    - npm test
+    - mix test
+
 deployment:
   hub:
     branch: master
