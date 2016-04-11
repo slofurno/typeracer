@@ -4,6 +4,7 @@ machine:
 
 dependencies:
   override:
+    - npm install
     - docker build -t slofurno/typeracer .
 
 deployment:
