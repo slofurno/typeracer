@@ -1,5 +1,5 @@
 {
-  "name": "books",
+  "name": "typeracer",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -7,7 +7,7 @@
     "test": "mocha --opts mocha.opts",
     "test:watch": "npm test -- --watch --reporter min",
     "webpack": "node_modules/.bin/webpack",
-    "start": "npm run webpack && iex -S mix"
+    "start": "npm run webpack && mix run --no-halt"
   },
   "author": "",
   "license": "ISC",

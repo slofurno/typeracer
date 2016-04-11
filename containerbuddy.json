@@ -1,0 +1,14 @@
+{
+  "consul": "localhost:8500",
+  "services": [
+    {
+      "name": "typeracer",
+      "port": 4444,
+      "health": "/usr/bin/curl --fail -s http://localhost:4444/api",
+      "poll": 3,
+      "ttl": 10
+    }
+  ],
+  "backends": [
+  ]
+}
