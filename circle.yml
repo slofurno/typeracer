@@ -10,7 +10,6 @@ dependencies:
 test:
   override:
     - npm test
-    - mix test
 
 deployment:
   hub:
