@@ -1,7 +1,7 @@
 {
   "name": "typeracer",
   "version": "1.0.0",
-  "description": "",
+  "description": "make athens great again",
   "main": "index.js",
   "scripts": {
     "test": "mocha --opts mocha.opts",
@@ -9,8 +9,8 @@
     "webpack": "node_modules/.bin/webpack",
     "start": "npm run webpack && mix run --no-halt"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "slofurno",
+  "license": "MIT",
   "devDependencies": {
     "babel-core": "^6.4.5",
     "babel-loader": "^6.2.1",

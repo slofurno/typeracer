@@ -16,7 +16,8 @@ RUN curl -Lo /tmp/cb.tar.gz https://github.com/joyent/containerbuddy/releases/do
 RUN npm run webpack
 
 COPY containerbuddy.json /etc/containerbuddy.json
+COPY bin/* /opt/containerbuddy/
 ENV CONTAINERBUDDY=file:///etc/containerbuddy.json
 ENV MIX_ENV="prod mix compile"
 
-CMD /bin/containerbuddy mix run --no-halt
+CMD ["/bin/containerbuddy", "mix", "run", "--no-halt"]
