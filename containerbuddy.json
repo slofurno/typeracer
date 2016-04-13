@@ -1,17 +1,17 @@
 {
-  "consul": "172.17.0.1:8500",
+  "consul": "localhost:8500",
   "stopTimeout": -1,
   "logging": {
     "level": "INFO",
     "format": "default",
     "output": "stdout"
   },
-  "postStop": "echo \"peace among worlds\"",
+  "preStop": "echo \"peace among worlds\"",
   "services": [
     {
-      "name": "typeracer",
-      "port": 4444,
-      "health": "/usr/bin/curl --fail -s http://localhost:4444/api",
+      "name": "typeracer-{{ .PORT0 }}",
+      "port": {{ .PORT0 }},
+      "health": "/usr/bin/curl --fail -s http://localhost:{{ .PORT0 }}/api",
       "poll": 3,
       "ttl": 10
     }

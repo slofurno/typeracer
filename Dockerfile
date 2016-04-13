@@ -1,7 +1,5 @@
 FROM appcues/elixir-dev
 
-EXPOSE 4444
-
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 
