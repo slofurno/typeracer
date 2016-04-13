@@ -12,7 +12,7 @@ defmodule Typeracer do
     children = [
       Plug.Adapters.Cowboy.child_spec(:http, nil, [], [
         dispatch: dispatch,
-        port: (get_port || 4444)
+        port: 4444
       ]),
       worker(Typeracer.Pubsub, []),
       worker(Typeracer.Text, [])

@@ -9,9 +9,9 @@
   "preStop": "echo \"peace among worlds\"",
   "services": [
     {
-      "name": "typeracer-{{ .PORT0 }}",
-      "port": {{ .PORT0 }},
-      "health": "/usr/bin/curl --fail -s http://localhost:{{ .PORT0 }}/api",
+      "name": "typeracer",
+      "port": 4444,
+      "health": "/usr/bin/curl --fail -s http://localhost:4444/api",
       "poll": 3,
       "ttl": 10
     }
